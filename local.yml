@@ -1,0 +1,23 @@
+services:
+  # Modify the webserver image to add another volume:
+  webserver:
+    build:
+      context: .
+      dockerfile: webserver.dockerfile
+      args:
+        MOODLE_DOCKER_PHP_VERSION: ${MOODLE_DOCKER_PHP_VERSION}
+    environment:
+      XDEBUG_MODE: develop,debug
+      XDEBUG_CONFIG:
+        ide_key=${XDEBUG_IDE_KEY}
+        discover_client_host=1
+        client_host=host.docker.internal
+        start_with_request=trigger
+        client_port=${XDEBUG_CLIENT_PORT}
+    volumes:
+      - "${MOODLE_DOCKER_DATAROOT}:/var/www/moodledata"
+      - "${MOODLE_DOCKER_ROOT}/tools:/var/www/tools"
+  # Modify the db image to add another volume:
+  db:
+    volumes:
+      - "${MOODLE_DOCKER_DBROOT}:/var/lib/mysql"
