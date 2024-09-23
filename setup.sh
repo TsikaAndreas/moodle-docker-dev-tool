@@ -197,6 +197,47 @@ add_moodle_codebase() {
     color_echo "Error: Failed to clone Moodle codebase for $codebase_type $version_to_use" "red"
 }
 
+add_iomad_codebase() {
+    local iomad_repo_url="https://github.com/iomad/iomad.git"
+    local latest_stable_branch
+    local branch_input
+    local branch_to_use
+    local codebase_type="branch"
+
+    # Get the latest STABLE branch
+    latest_stable_branch=$(git ls-remote --heads "$iomad_repo_url" | grep 'STABLE$' | cut --delimiter='/' --fields=3 | sort -r | head -n 1)
+
+    while true; do
+        # Prompt the user for a branch name
+        color_echo "Enter the branch name (default: $latest_stable_branch): " "yellow"
+        read -r branch_input
+
+        if [ -z "$branch_input" ]; then
+            # Use the latest STABLE branch
+            branch_to_use="$latest_stable_branch"
+            break
+        else
+            # Check if the input matches a branch with the STABLE suffix
+            branch_exists=$(git ls-remote --exit-code --heads "$iomad_repo_url" "$branch_input" | grep 'STABLE$')
+
+            if [ -n "$branch_exists" ]; then
+                # Use the specified branch
+                branch_to_use="$branch_input"
+                echo "Using branch: $branch_to_use"
+                break
+            else
+                echo "Invalid, branch name not found. Please provide a valid branch with the 'STABLE' suffix."
+                continue
+            fi
+        fi
+    done
+
+    # Clone the repository on the specified branch
+    git clone --branch "$branch_to_use" --depth 1 "$iomad_repo_url" "$root_project_dir/html" && \
+    color_echo "IOMAD codebase for branch $branch_to_use has been added" "green" || \
+    color_echo "Error: Failed to clone IOMAD codebase for branch $branch_to_use" "red"
+}
+
 # Install moodle plugins
 moodle_plugins_installation() {
     # Check if $root_project_dir is unset
@@ -458,20 +499,27 @@ prompt_moodle_codebase_installation() {
     echo "Options:"
     echo "0. None (skip)"
     echo "1. Moodle"
+    echo "2. IOMAD"
 
     # Prompt the user for input
     while true; do
-        read -rp "Enter your choice [0-3]: " choice
+        read -rp "Enter your choice [0-2]: " choice
 
         case "$choice" in
+            0)
+                echo "Skipping Moodle codebase installation."
+                break
+                ;;
             1)
                 echo "Proceeding with Moodle codebase installation..."
                 add_moodle_codebase
                 moodle_plugins_installation
                 break
                 ;;
-            0)
-                echo "Skipping Moodle codebase installation."
+            2)
+                echo "Proceeding with IOMAD codebase installation..."
+                add_iomad_codebase
+                moodle_plugins_installation
                 break
                 ;;
             *)
